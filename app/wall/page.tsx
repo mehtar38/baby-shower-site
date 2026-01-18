@@ -22,7 +22,7 @@ export default function StickerWall() {
   useEffect(() => {
     const id = localStorage.getItem('participantId');
     if (!id) {
-      router.push('/bet');
+      router.push('/predictions');
       return;
     }
 
