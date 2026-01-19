@@ -1,4 +1,4 @@
-// src/app/components/MarketSurveyCharts.tsx
+// src/app/components/MarketSurvey.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,7 +17,7 @@ import { Bar, Pie } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
-export default function MarketSurveyCharts() {
+export default function MarketSurvey() {
   const [chartData, setChartData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

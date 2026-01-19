@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import MarketSurveyCharts from './components/MarketSurvey';
+import MarketSurvey from './components/MarketSurvey';
 
 // Inside src/app/page.tsx (at the top, below imports)
 import useEmblaCarousel from 'embla-carousel-react';
@@ -323,7 +323,7 @@ export default function HomePage() {
 {/* Market Survey + CTA */}
 <section className="w-full bg-[#fff5f0] py-16">
   <div className="max-w-6xl mx-auto px-6">
-    <MarketSurveyCharts />
+    <MarketSurvey />
 
     {/* Integrated CTA Buttons */}
     <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
