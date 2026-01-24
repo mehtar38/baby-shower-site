@@ -11,7 +11,7 @@ export async function GET() {
     return Response.json(res.rows);
   } catch (error) {
     console.error('Fetch stickers error:', error);
-    return Response.json([], { status: 200 }); // safe fallback
+    return Response.json([], { status: 200 });
   }
 }
 
@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { participantId, babyName, x, y, color } = body;
 
-    if (!participantId || !babyName || x == null || y == null || !color) {
+    // participantId is now optional
+    if (!babyName || x == null || y == null || !color) {
       return Response.json({ message: 'Missing fields' }, { status: 400 });
     }
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, baby_name AS name, x, y, color
       `,
-      [participantId, babyName.trim(), x, y, color]
+      [participantId || null, babyName.trim(), x, y, color]
     );
 
     return Response.json(res.rows[0], { status: 201 });

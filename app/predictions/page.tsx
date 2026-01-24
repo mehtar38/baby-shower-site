@@ -1,78 +1,63 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// import dynamic from 'next/dynamic';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
 
 declare global {
   interface Window {
     confetti?: unknown;
   }
 }
-
+const YEAR = 2026;
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function BetPage() {
-  // Participant state (will be replaced by real join flow)
   const [participant, setParticipant] = useState<{ name: string; relation: string } | null>(null);
   const [participantId, setParticipantId] = useState<number | null>(null);
-
+  
   // Prediction state
   const [gender, setGender] = useState<'boy' | 'girl' | null>(null);
-  const [weightKg, setWeightKg] = useState<number>(3.2); // kg
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
-
-  // Form step: which full-screen view to show
-  const [currentStep, setCurrentStep] = useState<'join' | 'gender' | 'weight' | 'date' | 'submitted'>('join');
-
-  // Auto-advance on selection (except join)
-  useEffect(() => {
-  // Only run on client
-  if (typeof window === 'undefined') return;
-
-  // Load confetti once
-  import('canvas-confetti').then((mod) => {
-    (window as any).confetti = mod.default;
+  const [weightKg, setWeightKg] = useState<number>(3.2);
+  const [dueDate, setDueDate] = useState<string>(''); // Store as string (YYYY-MM-DD)
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  
+  // BETTING STATE
+  const [bets, setBets] = useState<Record<string, number>>({
+    gender: 100,
+    weight: 100,
+    date: 100,
   });
-}, []);
 
-useEffect(() => {
-  if (!gender) return;
+  // Captcha
+  const [captchaCode, setCaptchaCode] = useState('');
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaError, setCaptchaError] = useState(''); 
 
-  const fireConfetti = () => {
-    const confettiFn = (window as any).confetti;
-    if (!confettiFn) return;
-
-    const colors = gender === 'boy'
-      ? ['#a0cfff', '#7fbfff']
-      : ['#ffc6d9', '#ffadd9'];
-
-    confettiFn({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors,
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    import('canvas-confetti').then((mod) => {
+      (window as any).confetti = mod.default;
     });
-  };
+  }, []);
 
-  // Small delay to ensure DOM is ready
-  const timer = setTimeout(fireConfetti, 100);
-  return () => clearTimeout(timer);
-}, [gender]);
-
-useEffect(() => {
-  if (currentStep === 'gender' && gender) {
-    const timer = setTimeout(() => setCurrentStep('weight'), 800);
+  useEffect(() => {
+    if (!gender) return;
+    const fireConfetti = () => {
+      const confettiFn = (window as any).confetti;
+      if (!confettiFn) return;
+      const colors = gender === 'boy'
+        ? ['#a2d2ff', '#7abfff']
+        : ['#ff9e85', '#ff7b54'];
+      confettiFn({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors,
+      });
+    };
+    const timer = setTimeout(fireConfetti, 100);
     return () => clearTimeout(timer);
-  }
+  }, [gender]);
 
-  if (currentStep === 'date' && dueDate) {
-    const timer = setTimeout(() => handleSubmit(), 800);
-    return () => clearTimeout(timer);
-  }
-}, [gender, dueDate, currentStep]);
-
-  // Format kg → "3 kg 200 g"
   const formatWeightKg = (kg: number): string => {
     const wholeKg = Math.floor(kg);
     const grams = Math.round((kg - wholeKg) * 1000);
@@ -80,158 +65,339 @@ useEffect(() => {
     return `${wholeKg} kg ${grams} g`;
   };
 
-  const handleJoin = async (name: string, relation: string) => {
-    if (!name.trim() || !relation.trim()) return;
+const handleJoin = async (name: string, relation: string) => {
+  if (!name.trim() || !relation.trim()) {
+    alert('Please enter both your name and relation!');
+    return;
+  }
 
-    try {
-      const res = await fetch('/api/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, relation }),
-      });
+  try {
+    // Save participant to DB FIRST
+    const res = await fetch('/api/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, relation }),
+    });
 
-      if (res.ok) {
-        const data = await res.json();
-        setParticipant({ name, relation });
-        setParticipantId(data.participantId);
-        localStorage.setItem('participantId', data.participantId.toString());
-        localStorage.setItem('participantName', name);
-        setCurrentStep('gender');
-      } else {
-        const error = await res.json();
-        alert(error.message || 'Name already taken! Try adding a last initial.');
-      }
-    } catch (err) {
-      alert('Failed to join. Please try again.');
+    if (res.ok) {
+      const data = await res.json();
+      
+      // Save to state AND localStorage
+      setParticipant({ name, relation });
+      setParticipantId(data.participantId);
+      localStorage.setItem('participantId', data.participantId.toString());
+      localStorage.setItem('participantName', name);
+      
+      // Show CAPTCHA
+      setShowCaptcha(true);
+    } else {
+      const error = await res.json();
+      alert(error.message || 'Name already taken! Try adding a last initial.');
+    }
+  } catch (err) {
+    alert('Failed to join. Please try again.');
+    console.error('Join error:', err);
+  }
+};
+
+  const handleCaptchaSubmit = async () => {
+    if (captchaCode.toLowerCase().trim() !== '10 kalol') {
+      setCaptchaError('Incorrect!');
+      return;
+    }
+      setShowCaptcha(false);
+  setCurrentStep('gender');
+  };
+
+const handleSubmit = async () => {
+  // Validate required fields
+  if (!participantId || !gender || !dueDate) {
+    alert('Please complete all steps!');
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    // Calculate total bet amount
+    const totalBet = bets.gender + bets.weight + bets.date;
+
+    // Send to API
+    const response = await fetch('/api/predict', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        participantId,
+        gender,
+        weightLbs: weightKg * 2.20462, // Convert kg → lbs
+        dueDate: dueDate, // Already in YYYY-MM-DD format
+        betAmount: totalBet, // Total bet across all questions
+      }),
+    });
+
+    if (response.ok) {
+      setCurrentStep('submitted');
+    } else {
+      const error = await response.json();
+      alert(error.message || 'Failed to save prediction. Please try again.');
+    }
+  } catch (error) {
+    console.error('Submission error:', error);
+    alert('Network error. Please check your connection.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+  /* ------------------ DATE HELPERS ------------------ */
+  const formatDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const isSameDay = (dateStr1: string, dateStr2: string) => {
+    return dateStr1 === dateStr2;
+  };
+
+  const getMonthDates = (year: number, month: number) => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    return Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1));
+  };
+
+  const monthDates = getMonthDates(YEAR, selectedMonth);
+  const monthStartOffset = new Date(YEAR, selectedMonth, 1).getDay();
+
+  // BET HANDLERS
+  const setPresetBet = (question: string, amount: number) => {
+    setBets(prev => ({ ...prev, [question]: amount }));
+  };
+
+  const setCustomBetAmount = (question: string, value: string) => {
+    const num = parseInt(value) || 100;
+    setBets(prev => ({ ...prev, [question]: Math.max(100, num) }));
+  };
+
+  // NAVIGATION HANDLERS
+  const handleNext = () => {
+    if (currentStep === 'gender' && gender) {
+      setCurrentStep('weight');
+    } else if (currentStep === 'weight') {
+      setCurrentStep('date');
     }
   };
 
-  const handleSubmit = async () => {
-    if (!participantId || !gender || !dueDate) return;
+  const [currentStep, setCurrentStep] = useState<'join' | 'gender' | 'weight' | 'date' | 'review' | 'submitted'>('join');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    try {
-      const res = await fetch('/api/predict', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          participantId,
-          gender,
-          weightLbs: weightKg * 2.20462, // convert kg → lbs for DB (or store kg — your call!)
-          dueDate: dueDate.toISOString().split('T')[0],
-        }),
-      });
-
-      if (res.ok) {
-        setCurrentStep('submitted');
-      } else {
-        const error = await res.json();
-        alert(error.message || 'Failed to save');
-      }
-    } catch (err) {
-      alert('Network error');
-    }
-  };
-
-const EXPECTED_DUE_DATE = new Date('2026-06-15');
-const minDate = new Date(EXPECTED_DUE_DATE);
-minDate.setDate(EXPECTED_DUE_DATE.getDate() - 14);
-const maxDate = new Date(EXPECTED_DUE_DATE);
-maxDate.setDate(EXPECTED_DUE_DATE.getDate() + 14);
-
-  // Render full-screen sections
   return (
-    <div className="font-sans">
+    <div 
+      className="font-sans min-h-screen"
+      style={{
+        backgroundImage: `url('/images/quiz-bg.png')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      {/* Add overlay for readability */}
+      <div className="absolute inset-0 bg-black/40"></div>
+      
       {/* Join Screen */}
-{currentStep === 'join' && (
-  <div className="min-h-screen bg-gradient-to-b from-amber-50 to-pink-50 flex flex-col items-center justify-center p-6">
-    <div className="text-center max-w-md w-full">
-      <h1 className="text-4xl font-bold text-purple-700 mb-2">👶 Welcome!</h1>
-      <p className="text-gray-600 mb-8">Tell us who you are so we can save your guesses!</p>
-      
-      <input
-        type="text"
-        id="name-input"
-        placeholder="Your Name"
-        className="w-full p-4 rounded-xl border text-black border-pink-200 bg-white shadow-sm mb-4 focus:outline-none focus:ring-2 focus:ring-pink-300"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            const name = (e.target as HTMLInputElement).value.trim();
-            const relationInput = document.getElementById('relation-input') as HTMLInputElement;
-            if (name && relationInput?.value.trim()) {
-              handleJoin(name, relationInput.value.trim());
-            }
-          }
-        }}
-      />
-
-      <input
-        type="text"
-        id="relation-input"
-        placeholder="Relation to Baby (e.g., Aunt, Best Friend, Uncle...)"
-        className="w-full p-4 rounded-xl border text-black border-purple-200 bg-white shadow-sm mb-6 focus:outline-none focus:ring-2 focus:ring-purple-300"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            const relation = (e.target as HTMLInputElement).value.trim();
-            const nameInput = document.getElementById('name-input') as HTMLInputElement;
-            if (relation && nameInput?.value.trim()) {
-              handleJoin(nameInput.value.trim(), relation);
-            }
-          }
-        }}
-      />
-      
-      <button
-        onClick={() => {
-          const nameInput = document.getElementById('name-input') as HTMLInputElement;
-          const relationInput = document.getElementById('relation-input') as HTMLInputElement;
-          const name = nameInput?.value.trim();
-          const relation = relationInput?.value.trim();
-          if (name && relation) {
-            handleJoin(name, relation);
-          } else {
-            alert('Please enter both your name and relation!');
-          }
-        }}
-        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:opacity-90 transition"
-      >
-        Start Predicting!
-      </button>
-    </div>
-  </div>
-)}
-
-      {/* Gender Screen */}
-      {currentStep === 'gender' && (
-        <div className="min-h-screen bg-linear-to-b from-blue-50 to-pink-50 flex flex-col items-center justify-center p-6">
-          <h2 className="text-3xl font-bold text-center text-gray-800 mb-12">
-            Is it a <span className="text-blue-500">boy</span> or a <span className="text-pink-500">girl</span>?
-          </h2>
-          <div className="flex gap-12">
+      {currentStep === 'join' && !showCaptcha && (
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+          <div className="text-center max-w-md w-full">
+            <h1 className="text-4xl font-bold text-white mb-2">Welcome!</h1>
+            <p className="text-gray-400 mb-8">May we see an ID please</p>
+            
+            <input
+              type="text"
+              id="name-input"
+              placeholder="Your Name"
+              className="w-full p-4 rounded-xl border text-white border-[#334155] bg-[#1e293b] shadow-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]"
+            />
+            <input
+              type="text"
+              id="relation-input"
+              placeholder="Relation to Baby (e.g., Aunt, Best Friend...)"
+              className="w-full p-4 rounded-xl border text-white border-[#334155] bg-[#1e293b] shadow-sm mb-6 focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]"
+            />
+            
             <button
-              onClick={() => setGender('boy')}
-              className="flex flex-col items-center bg-blue-100 hover:bg-blue-200 rounded-3xl w-40 h-40 justify-center transition transform hover:scale-105 shadow-lg"
+              onClick={() => {
+                const nameInput = document.getElementById('name-input') as HTMLInputElement;
+                const relationInput = document.getElementById('relation-input') as HTMLInputElement;
+                const name = nameInput?.value.trim();
+                const relation = relationInput?.value.trim();
+                if (name && relation) {
+                  handleJoin(name, relation);
+                } else {
+                  alert('Please enter both your name and relation!');
+                }
+              }}
+              className="bg-gradient-to-r from-[#ff6b6b] to-[#ff8e8e] text-white font-bold py-3 px-8 rounded-full shadow-lg hover:opacity-90 transition transform hover:scale-105"
             >
-              <span className="text-5xl mb-2">👶</span>
-              <span className="font-bold text-blue-700">Boy</span>
-            </button>
-            <button
-              onClick={() => setGender('girl')}
-              className="flex flex-col items-center bg-pink-100 hover:bg-pink-200 rounded-3xl w-40 h-40 justify-center transition transform hover:scale-105 shadow-lg"
-            >
-              <span className="text-5xl mb-2">👧</span>
-              <span className="font-bold text-pink-700">Girl</span>
+              Start Predicting!
             </button>
           </div>
         </div>
       )}
 
+      {/* CAPTCHA Screen */}
+      {showCaptcha && (
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+          <h2 className="text-2xl font-bold text-white mb-6">Verify you are a Human</h2>
+          <p className='text-xs mb-3 text-gray-300'> To continue, type the characters you see in the picture </p>
+          
+          <div className="mb-6 max-w-xs">
+            <img 
+              src="/images/captcha-meme.jpg" 
+              alt="CAPTCHA Meme"
+              className="w-full rounded-xl border border-[#334155]"
+            />
+          </div>
+          
+          <input
+            type="text"
+            value={captchaCode}
+            onChange={(e) => setCaptchaCode(e.target.value)}
+            placeholder="How much are you betting today?"
+            className="w-full max-w-xs p-3 rounded-full border border-[#334155] bg-[#1e293b] text-white text-center mb-4 focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]"
+            onKeyDown={(e) => e.key === 'Enter' && handleCaptchaSubmit()}
+          />
+          
+          {captchaError && (
+            <p className="text-red-400 mb-4">{captchaError}</p>
+          )}
+          
+          <button
+            onClick={handleCaptchaSubmit}
+            className="bg-gradient-to-r from-[#ff6b6b] to-[#ff8e8e] text-white font-bold py-2 px-6 rounded-full"
+          >
+            Let the Games Begin!
+          </button>
+          
+          <button
+            onClick={() => setShowCaptcha(false)}
+            className="mt-4 text-gray-400 hover:text-white"
+          >
+            ← Back
+          </button>
+        </div>
+      )}
+
+      {/* Gender Screen */}
+      {currentStep === 'gender' && (
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+          <h2 className="text-3xl font-bold text-center text-white mb-8">
+            Is it a <span className="text-[#ff6b6b]">boy</span> or a <span className="text-[#8b5cf6]">girl</span>?
+          </h2>
+          
+          <div className="mb-8 flex flex-wrap gap-2 justify-center">
+            {[100, 500, 1000].map(amount => (
+              <button
+                key={amount}
+                onClick={() => setPresetBet('gender', amount)}
+                className={`px-4 py-2 rounded-full font-bold ${
+                  bets.gender === amount
+                    ? 'bg-[#ff6b6b] text-white'
+                    : 'bg-[#334155] text-gray-300 border border-[#475569]'
+                }`}
+              >
+                ₹{amount}
+              </button>
+            ))}
+            <input
+              type="number"
+              min="100"
+              value={bets.gender}
+              onChange={(e) => setCustomBetAmount('gender', e.target.value)}
+              placeholder="Custom"
+              className="w-24 bg-[#334155] text-white rounded-full px-3 py-2 border border-[#475569] text-center"
+            />
+          </div>
+
+          <div className="flex gap-8">
+            <button
+              onClick={() => setGender('boy')}
+              className={`flex flex-col items-center w-40 h-40 rounded-2xl justify-center transition-all ${
+                gender === 'boy'
+                  ? 'bg-[#ff6b6b]/20 border-2 border-[#ff6b6b] scale-105'
+                  : 'bg-[#1e293b] border-2 border-[#334155] hover:bg-[#334155]'
+              }`}
+            >
+              <span className="text-4xl mb-2">👶</span>
+              <span className="font-bold text-white">Boy</span>
+            </button>
+            <button
+              onClick={() => setGender('girl')}
+              className={`flex flex-col items-center w-40 h-40 rounded-2xl justify-center transition-all ${
+                gender === 'girl'
+                  ? 'bg-[#8b5cf6]/20 border-2 border-[#8b5cf6] scale-105'
+                  : 'bg-[#1e293b] border-2 border-[#334155] hover:bg-[#334155]'
+              }`}
+            >
+              <span className="text-4xl mb-2">👧</span>
+              <span className="font-bold text-white">Girl</span>
+            </button>
+          </div>
+
+          <button
+            onClick={handleNext}
+            disabled={!gender}
+            className={`mt-10 px-8 py-3 rounded-full font-bold text-white ${
+              gender
+                ? 'bg-gradient-to-r from-[#ff6b6b] to-[#ff8e8e] shadow-lg hover:shadow-xl transform hover:scale-105'
+                : 'bg-gray-700 cursor-not-allowed'
+            }`}
+          >
+            Lock In Answer →
+          </button>
+
+          <button
+            onClick={() => setCurrentStep('join')}
+            className="mt-6 text-gray-400 hover:text-white"
+          >
+            ← Back
+          </button>
+        </div>
+      )}
+
       {/* Weight Screen */}
       {currentStep === 'weight' && (
-        <div className="min-h-screen bg-linear-to-b from-green-50 to-amber-50 flex flex-col items-center justify-center p-6">
-          <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+          <h2 className="text-3xl font-bold text-center text-white mb-6">
             How much will baby weigh?
           </h2>
-          <div className="text-2xl font-semibold text-purple-600 mb-8">
+          
+          <div className="mb-6 flex flex-wrap gap-2 justify-center">
+            {[100, 500, 1000].map(amount => (
+              <button
+                key={amount}
+                onClick={() => setPresetBet('weight', amount)}
+                className={`px-4 py-2 rounded-full font-bold ${
+                  bets.weight === amount
+                    ? 'bg-[#ff6b6b] text-white'
+                    : 'bg-[#334155] text-gray-300 border border-[#475569]'
+                }`}
+              >
+                ₹{amount}
+              </button>
+            ))}
+            <input
+              type="number"
+              min="100"
+              value={bets.weight}
+              onChange={(e) => setCustomBetAmount('weight', e.target.value)}
+              placeholder="Custom"
+              className="w-24 bg-[#334155] text-white rounded-full px-3 py-2 border border-[#475569] text-center"
+            />
+          </div>
+
+          <div className="text-2xl font-semibold text-white mb-6">
             {formatWeightKg(weightKg)}
           </div>
           <input
@@ -241,54 +407,192 @@ maxDate.setDate(EXPECTED_DUE_DATE.getDate() + 14);
             step="0.1"
             value={weightKg}
             onChange={(e) => setWeightKg(parseFloat(e.target.value))}
-            className="w-4/5 h-4 bg-gray-200 rounded-full appearance-none accent-purple-500"
+            className="w-4/5 h-3 bg-[#334155] rounded-full appearance-none accent-[#ff6b6b]"
           />
-          <div className="flex justify-between w-4/5 text-sm text-gray-500 mt-2">
+          <div className="flex justify-between w-4/5 text-sm text-gray-400 mt-2">
             <span>1.8 kg</span>
             <span>4.5 kg</span>
           </div>
+
           <button
             onClick={() => setCurrentStep('date')}
-            className="mt-12 bg-linear-to-r from-purple-400 to-pink-400 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:opacity-90"
+            className="mt-8 px-8 py-3 rounded-full font-bold text-white bg-gradient-to-r from-[#ff6b6b] to-[#ff8e8e] shadow-lg hover:shadow-xl transform hover:scale-105"
           >
-            Next: Pick Due Date
+            Lock In Weight →
+          </button>
+
+          <button
+            onClick={() => setCurrentStep('gender')}
+            className="mt-6 text-gray-400 hover:text-white"
+          >
+            ← Back
           </button>
         </div>
       )}
 
       {/* Date Screen */}
       {currentStep === 'date' && (
-        <div className="min-h-screen bg-linear-to-b from-indigo-50 to-purple-50 flex flex-col items-center justify-center p-4">
-          <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
-            When will baby arrive?
-          </h2>
-          <div className="bg-white rounded-2xl p-4 shadow-xl max-w-xs">
-            <DayPicker
-              mode="single"
-              selected={dueDate}
-              onSelect={setDueDate}
-              fromDate={minDate}
-              toDate={maxDate}
-              classNames={{
-                day_selected: 'bg-pink-500 text-white',
-                nav_button: 'text-purple-600 hover:text-purple-800',
-              }}
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+          <h2 className="text-3xl font-bold text-white mb-6">When will baby arrive?</h2>
+
+          {/* BET AMOUNTS */}
+          <div className="mb-6 flex gap-2">
+            {[100, 500, 1000].map(a => (
+              <button
+                key={a}
+                onClick={() => setPresetBet('date', a)}
+                className={`px-4 py-2 rounded-full font-bold ${
+                  bets.date === a
+                    ? 'bg-[#ff6b6b] text-white'
+                    : 'bg-[#334155] text-gray-300'
+                }`}
+              >
+                ₹{a}
+              </button>
+            ))}
+            <input
+              type="number"
+              value={bets.date}
+              onChange={e => setCustomBetAmount('date', e.target.value)}
+              className="w-24 bg-[#334155] text-white rounded-full px-3 py-2 text-center"
             />
+          </div>
+
+          {/* CALENDAR */}
+          <div className="bg-[#1e293b] rounded-2xl p-5 shadow-xl border border-[#334155] max-w-sm w-full">
+            {/* Month Navigation */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => setSelectedMonth(prev => (prev === 0 ? 11 : prev - 1))}
+                className="text-white hover:text-[#ff6b6b] p-2"
+              >
+                ←
+              </button>
+              <p className="text-center text-white font-semibold">
+                {new Date(YEAR, selectedMonth).toLocaleString('default', {
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </p>
+              <button
+                onClick={() => setSelectedMonth(prev => (prev === 11 ? 0 : prev + 1))}
+                className="text-white hover:text-[#ff6b6b] p-2"
+              >
+                →
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-2 text-center">
+              {WEEKDAYS.map((d, i) => (
+                <div key={`weekday-${i}`} className="text-gray-500 font-semibold text-sm">
+                  {d}
+                </div>
+              ))}
+
+              {Array.from({ length: monthStartOffset }).map((_, i) => (
+                <div key={`empty-${i}`} />
+              ))}
+
+              {monthDates.map(date => {
+                const dateStr = formatDate(date);
+                const selected = isSameDay(dueDate, dateStr);
+
+                return (
+                  <button
+                    key={date.toISOString()}
+                    onClick={() => setDueDate(dateStr)}
+                    className={`w-10 h-10 rounded-full font-bold transition ${
+                      selected
+                        ? 'bg-[#ff6b6b] text-white scale-110'
+                        : 'bg-[#334155] text-gray-300 hover:bg-[#475569]'
+                    }`}
+                  >
+                    {date.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-6 flex gap-6">
+            <button onClick={() => setCurrentStep('weight')} className="text-gray-400 hover:text-white">
+              ← Back
+            </button>
+            <button
+              disabled={!dueDate}
+              onClick={() => setCurrentStep('review')}
+              className={`px-6 py-2 rounded-full font-bold ${
+                dueDate
+                  ? 'bg-gradient-to-r from-[#ff6b6b] to-[#ff8e8e] text-white'
+                  : 'bg-gray-700 text-gray-500'
+              }`}
+            >
+              Confirm Date →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Review Screen */}
+      {currentStep === 'review' && (
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+          <h2 className="text-3xl font-bold text-center text-white mb-8">
+            Final Review
+          </h2>
+          <div className="bg-[#1e293b] rounded-2xl p-6 shadow-md max-w-md w-full border border-[#334155]">
+            <div className="space-y-4 text-white">
+              <div>
+                <p className="text-gray-400">Gender</p>
+                <p className="font-bold">{gender === 'boy' ? 'Boy' : 'Girl'} (₹{bets.gender})</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Weight</p>
+                <p className="font-bold">{formatWeightKg(weightKg)} (₹{bets.weight})</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Due Date</p>
+                <p className="font-bold">
+                  {dueDate ? new Date(dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'Not set'} (₹{bets.date})
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-8 flex flex-wrap gap-4 justify-center">
+            <button
+              onClick={() => setCurrentStep('date')}
+              className="text-gray-400 hover:text-white"
+            >
+              ← Edit Date
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className={`px-8 py-3 rounded-full font-bold text-white ${
+                isSubmitting
+                  ? 'bg-gray-700 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-[#ff6b6b] to-[#ff8e8e] shadow-lg hover:shadow-xl transform hover:scale-105'
+              }`}
+            >
+              {isSubmitting ? 'Placing Bet...' : 'Place Final Bet!'}
+            </button>
           </div>
         </div>
       )}
 
       {/* Submitted */}
       {currentStep === 'submitted' && (
-        <div className="min-h-screen bg-linear-to-b from-yellow-50 to-red-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
           <div className="text-6xl mb-6">🎉</div>
-          <h2 className="text-3xl font-bold text-green-600 mb-4">All Done!</h2>
-          <p className="text-lg text-gray-700 max-w-md">
-            Your prediction is locked in! Thanks for playing, {participant?.name}!
+          <h2 className="text-3xl font-bold text-[#ff6b6b] mb-4">All Done!</h2>
+          <p className="text-lg text-gray-300 max-w-md text-center">
+            Your predictions are locked in! Also, this is all subject to market risk. Anyways, thanks for playing {participant?.name} {participant?.relation} !
           </p>
-          <p className="mt-4 text-sm text-gray-500">
-            You can’t change your guess — may the best predictor win!
-          </p>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="mt-6 bg-[#1e293b] text-[#ff6b6b] font-bold py-2 px-6 rounded-full shadow border border-[#ff6b6b]"
+          >
+            Back to Home
+          </button>
         </div>
       )}
     </div>

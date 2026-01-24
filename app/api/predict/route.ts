@@ -4,6 +4,7 @@ import pool from '@/db/db';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('Received prediction:', body);
     const { participantId, gender, weightLbs, dueDate } = body;
 
     // Validate input
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
         INSERT INTO predictions (participant_id, gender, weight_lbs, due_date, bet_amount)
         VALUES ($1, $2, $3, $4, $5)
       `,
-      [participantId, gender, weightNum, dueDate, 100] // bet_amount is fixed at 100 for fun
+      [participantId, gender, weightNum, dueDate, body.betAmount] // bet_amount is fixed at 100 for fun
     );
 
     return Response.json({ success: true }, { status: 201 });
