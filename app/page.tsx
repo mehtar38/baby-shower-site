@@ -11,17 +11,13 @@ import useEmblaCarousel from 'embla-carousel-react';
 
 // Funny baby "product" reviews
 const babyReviews = [
-  {
-    name: "Grandma",
-    comment: "Chunky, kissable cheeks! 10/10 would snuggle again.",
+    {
+    name: "Mother",
+    comment: "Limited battery life. Needs frequent recharging.",
   },
   {
     name: "Uncle",
     comment: "Steep learning curve on crying patterns. Documentation could be better.",
-  },
-  {
-    name: "Mother",
-    comment: "Limited battery life. Needs frequent recharging.",
   },
   {
     name: "Family Dog",
@@ -88,7 +84,6 @@ const Confetti = dynamic(() => import("canvas-confetti"), { ssr: false });
 export default function HomePage() {
   const EXPECTED_DUE_DATE = new Date("2026-06-15");
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
-  const [applauseCount, setApplauseCount] = useState(0);
   const [preOrderCount, setPreOrderCount] = useState<number>(0);
   const [isPreOrdering, setIsPreOrdering] = useState(false);
 
@@ -139,25 +134,10 @@ export default function HomePage() {
   };
 
   // Content data
-  const techSpecs = [
-    { label: "Model", value: "Baby Mehta" },
-    { label: "Release Date", value: "June 15, 2026" },
-    { label: "Weight (est.)", value: "3.2 kg" },
-    { label: "Features", value: "10 fingers, 10 toes, unlimited cuddles" },
-    { label: "Compatibility", value: "All loving hearts ❤️" },
-  ];
-
   const pressQuotes = [
     "“The most anticipated arrival of the decade!” – The Family Times",
     "“Cutest update yet. Pre-order highly recommended.” – Gossip Network",
     "“Finally, a product worth waiting for.” – Tech Reviewer",
-  ];
-
-  const systemRequirements = [
-    "Unlimited patience",
-    "Diapers (sold separately)",
-    "A heart full of love 💖",
-    "Willingness to sing off-key lullabies",
   ];
 
   const customerReviews = [
@@ -172,13 +152,13 @@ export default function HomePage() {
   return (
     <div className="relative overflow-hidden">
       {/* Decorative shapes (keep these) */}
-      <div className="absolute top-10 left-10 w-16 h-16 rounded-full bg-[#ffd166]/20 blur-xl"></div>
-      <div className="absolute top-20 right-20 w-12 h-12 rounded-full bg-[#a2d2ff]/30 blur-xl"></div>
+      <div className="absolute top-10 left-10 w-16 h-16 rounded-full bg-[#ff9166]/20 blur-xl"></div>
+      {/* <div className="absolute top-20 right-20 w-12 h-12 rounded-full bg-[#a2d2ff]/30 blur-xl"></div> */}
       <div className="absolute bottom-32 left-1/4 w-10 h-10 rounded-full bg-[#c1f3b7]/30 blur-xl"></div>
       <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#ff9e85]/10 blur-3xl"></div>
 
       {/* Hero Section – Full Width */}
-      <section className="w-full bg-[#fef7f2] py-16">
+      <section className="w-full bg-[#fff0eb] py-16">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left: Animated Text */}
@@ -214,7 +194,7 @@ export default function HomePage() {
               <div className="relative">
                 <div className="w-64 h-64 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-xl border-4 border-white">
                   <img
-                    src="/images/baby2.webp"
+                    src="/images/baby2.jpg"
                     alt="Baby Mehta Gen 4.0"
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -275,10 +255,10 @@ export default function HomePage() {
 </section>
 
       {/* System Requirements – Full Width Mint */}
-      <section className="w-full bg-[#ecfdf5] py-24">
+      <section className="w-full bg-[#edf7ff] py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="mb-12">
-            <h2 className="text-2xl font-semibold text-gray-800">
+            <h2 className="text-2xl text-center font-semibold text-gray-800">
               System Requirements:
             </h2>
             <div className="w-full h-px bg-gray-300 mt-3"></div>
@@ -321,8 +301,11 @@ export default function HomePage() {
       </section>
 
 {/* Market Survey + CTA */}
-<section className="w-full bg-[#fff5f0] py-16">
-  <div className="max-w-6xl mx-auto px-6">
+<section className="w-full bg-[#ffffff] py-16">
+  <div className="max-w-7xl mx-auto px-6">
+    <h2 className="text-2xl font-semibold text-center mb-12 text-gray-800">
+              Live Market Consensus
+            </h2>
     <MarketSurvey />
 
     {/* Integrated CTA Buttons */}
@@ -344,11 +327,11 @@ export default function HomePage() {
 </section>
 
       {/* Press – Full Width */}
-      <section className="w-full bg-[#f0f9ff] py-16">
-        <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">
-            Press & Media
-          </h2>
+      <section className="w-full bg-[#fff0eb] py-16">
+  <div className="max-w-8xl mx-auto px-6">
+    <h2 className="text-2xl font-semibold text-center mb-12 text-gray-800">
+              Press and Media
+            </h2>
           <div className="max-w-2xl mx-auto space-y-4">
             {pressQuotes.map((quote, i) => (
               <div
@@ -364,7 +347,7 @@ export default function HomePage() {
 
 
 {/* Customer Reviews – Carousel */}
-<section className="w-full bg-[#faf5ff] py-20">
+<section className="w-full bg-[#f5f0ff] py-20">
   <div className="max-w-8xl mx-auto px-6">
     <h2 className="text-2xl font-semibold text-center mb-12 text-gray-800">
       People who owned similar products say…
@@ -375,7 +358,7 @@ export default function HomePage() {
 </section>
 
 {/* Meet the Team */}
-<section className="w-full bg-white py-16">
+<section className="w-full bg-[#ffffff] py-16">
   <div className="max-w-4xl mx-auto px-6">
     <h2 className="text-2xl font-semibold text-center mb-12 text-gray-800">
       Meet the Core Team
@@ -387,7 +370,7 @@ export default function HomePage() {
         <div className="flex flex-col items-center text-center">
           <div className="w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-[#ff9e85]">
             <img
-              src="/images/parent1.jpg"
+              src="/images/riddi.jpg"
               alt="Lead Developer"
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -404,7 +387,7 @@ export default function HomePage() {
         <div className="flex flex-col items-center text-center">
           <div className="w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-[#a2d2ff]">
             <img
-              src="/images/parent2.jpg"
+              src="/images/saumi.jpg"
               alt="Backend Engineer"
               className="w-full h-full object-cover"
               onError={(e) => {

@@ -142,9 +142,9 @@ export default function MarketSurvey() {
     <div>
 
       {/* Header */}
-      <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">
+      {/* <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">
         Live Market Consensus
-      </h2>
+      </h2> */}
       
       {/* Charts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
