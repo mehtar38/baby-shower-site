@@ -526,7 +526,7 @@ const findTopBettor = () => {
         {sub.name} ({sub.relation})
       </div>
       <div className="text-gray-600 text-sm">
-        Gender: {sub.gender} | Weight: {parseFloat(sub.weight_lbs * 0.453592).toFixed(1)} kg | 
+        Gender: {sub.gender} | Weight: {(sub.weight_lbs * 0.453592).toFixed(1)} kg | 
         Date: {new Date(sub.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
       </div>
       <div className="text-purple-700 font-medium mt-1">
