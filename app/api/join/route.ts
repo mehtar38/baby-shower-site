@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
       [cleanName]
     );
 
-    if (existing.rows.length > 0) {
-      return Response.json({ message: 'That name is already taken! Please use a unique name (e.g., "Alex K." or "Uncle Alex").' }, { status: 409 });
-    }
+    // if (existing.rows.length > 0) {
+    //   return Response.json({ message: 'That name is already taken! Please use a unique name (e.g., "Alex K." or "Uncle Alex").' }, { status: 409 });
+    // }
 
     // Insert new participant
     const result = await pool.query(
